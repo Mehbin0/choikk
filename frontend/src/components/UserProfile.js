@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Button, Form, Alert, Nav, Spinner, Badge } from 'react-bootstrap';
 import { getUserProfile, updateUserProfile, changePassword } from '../services/auth';
 import { getUserPosts } from '../services/posts';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +9,8 @@ const UserProfile = () => {
   const [profile, setProfile] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);  const [editMode, setEditMode] = useState(false);
+  const [error, setError] = useState(null);
+  const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
     bio: '',
     avatar_url: ''
@@ -27,7 +29,8 @@ const UserProfile = () => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        const profileData = await getUserProfile();        setProfile(profileData);
+        const profileData = await getUserProfile();
+        setProfile(profileData);
         setFormData({
           bio: profileData.bio || '',
           avatar_url: profileData.avatar_url || ''
@@ -117,237 +120,334 @@ const UserProfile = () => {
   };
   
   if (loading && !profile) {
-    return <div className="container mt-5"><p>Loading profile...</p></div>;
+    return (
+      <Container className="py-5 text-center">
+        <Spinner animation="border" variant="primary" />
+        <p className="mt-3">Loading profile...</p>
+      </Container>
+    );
   }
   
   if (error) {
-    return <div className="container mt-5"><p className="text-danger">{error}</p></div>;
+    return (
+      <Container className="py-5">
+        <Alert variant="danger">{error}</Alert>
+      </Container>
+    );
   }
   
   return (
-    <div className="container mt-4">
-      <h2>User Profile</h2>
+    <Container className="py-4">
+      <h2 className="mb-4 border-bottom pb-3">User Profile</h2>
       
       {message && (
-        <div className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-danger'}`}>
+        <Alert 
+          variant={message.type === 'success' ? 'success' : 'danger'}
+          dismissible
+          onClose={() => setMessage(null)}
+          className="mb-4"
+        >
           {message.text}
-          <button
-            type="button"
-            className="btn-close float-end"
-            onClick={() => setMessage(null)}
-          ></button>
-        </div>
+        </Alert>
       )}
       
-      <ul className="nav nav-tabs mb-4">
-        <li className="nav-item">
-          <button 
-            className={`nav-link ${activeTab === 'profile' ? 'active' : ''}`}
+      <Nav variant="tabs" className="mb-4">
+        <Nav.Item>
+          <Nav.Link 
+            active={activeTab === 'profile'}
             onClick={() => setActiveTab('profile')}
+            className="d-flex align-items-center"
           >
-            Profile
-          </button>
-        </li>
-        <li className="nav-item">
-          <button 
-            className={`nav-link ${activeTab === 'posts' ? 'active' : ''}`}
+            <i className="bi bi-person me-2"></i> Profile
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link
+            active={activeTab === 'posts'}
             onClick={() => setActiveTab('posts')}
+            className="d-flex align-items-center"
           >
-            My Posts
-          </button>
-        </li>
-        <li className="nav-item">
-          <button 
-            className={`nav-link ${activeTab === 'security' ? 'active' : ''}`}
+            <i className="bi bi-file-text me-2"></i> My Posts
+          </Nav.Link>
+        </Nav.Item>
+        <Nav.Item>
+          <Nav.Link
+            active={activeTab === 'security'}
             onClick={() => setActiveTab('security')}
+            className="d-flex align-items-center"
           >
-            Security
-          </button>
-        </li>
-      </ul>
+            <i className="bi bi-shield-lock me-2"></i> Security
+          </Nav.Link>
+        </Nav.Item>
+      </Nav>
       
       {activeTab === 'profile' && (
         <div className="profile-tab">
           {!editMode ? (
-            <div className="card">
-              <div className="card-body">
-                <div className="row">
-                  <div className="col-md-4 text-center mb-3">
+            <Card className="border-0 shadow-sm">
+              <Card.Body className="p-4">
+                <Row>
+                  <Col md={4} className="text-center mb-4 mb-md-0">
                     <img
                       src={profile.avatar_url || 'https://via.placeholder.com/150'}
                       alt="Profile Avatar"
                       className="rounded-circle img-thumbnail"
-                      style={{ width: '150px', height: '150px' }}
+                      style={{ width: '150px', height: '150px', objectFit: 'cover' }}
                     />
-                  </div>
-                  <div className="col-md-8">
-                    <h3>{profile.username}</h3>                    <p className="text-muted">Role: {profile.role}</p>
-                    <p className="text-muted">Joined: {new Date(profile.created_at).toLocaleDateString()}</p>
-                    <p className="text-muted">Last Login: {profile.last_login ? new Date(profile.last_login).toLocaleString() : 'N/A'}</p>
-                    <p className="text-muted">Posts: {profile.post_count || userPosts.length}</p>
-                    <h5 className="mt-3">Bio</h5>
-                    <p>{profile.bio || 'No bio provided.'}</p>
-                    <button
-                      className="btn btn-primary"
+                    <div className="mt-3">
+                      <h4>{profile.username}</h4>
+                      <Badge bg="primary" className="me-2">{profile.role || 'User'}</Badge>
+                    </div>
+                  </Col>
+                  <Col md={8}>
+                    <div className="mb-4">
+                      <Row className="mb-2">
+                        <Col xs={12} md={4} className="text-muted">Joined:</Col>
+                        <Col xs={12} md={8}>{new Date(profile.created_at).toLocaleDateString()}</Col>
+                      </Row>
+                      <Row className="mb-2">
+                        <Col xs={12} md={4} className="text-muted">Last Login:</Col>
+                        <Col xs={12} md={8}>{profile.last_login ? new Date(profile.last_login).toLocaleString() : 'N/A'}</Col>
+                      </Row>
+                      <Row className="mb-4">
+                        <Col xs={12} md={4} className="text-muted">Posts:</Col>
+                        <Col xs={12} md={8}>{profile.post_count || userPosts.length}</Col>
+                      </Row>
+                      <Row>
+                        <Col xs={12}>
+                          <h5 className="mb-2">Bio</h5>
+                          <p className="text-muted">{profile.bio || 'No bio provided.'}</p>
+                        </Col>
+                      </Row>
+                    </div>
+                    <Button
+                      variant="primary"
                       onClick={() => setEditMode(true)}
+                      className="d-flex align-items-center"
                     >
-                      Edit Profile
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
+                      <i className="bi bi-pencil-square me-2"></i> Edit Profile
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
           ) : (
-            <div className="card">
-              <div className="card-body">
-                <h3>Edit Profile</h3>                <form onSubmit={handleProfileUpdate}>
-                  <div className="mb-3">
-                    <label htmlFor="avatar_url" className="form-label">Avatar URL</label>
-                    <input
+            <Card className="border-0 shadow-sm">
+              <Card.Header className="bg-white py-3">
+                <h4 className="mb-0">Edit Profile</h4>
+              </Card.Header>
+              <Card.Body className="p-4">
+                <Form onSubmit={handleProfileUpdate}>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Avatar URL</Form.Label>
+                    <Form.Control
                       type="text"
-                      className="form-control"
-                      id="avatar_url"
                       name="avatar_url"
                       value={formData.avatar_url}
                       onChange={handleInputChange}
+                      placeholder="Enter URL to your avatar image"
                     />
                     {formData.avatar_url && (
-                      <div className="mt-2">
+                      <div className="mt-3 text-center">
                         <img
                           src={formData.avatar_url}
                           alt="Avatar Preview"
-                          className="img-thumbnail"
-                          style={{ maxWidth: '100px' }}
+                          className="img-thumbnail rounded-circle"
+                          style={{ width: '100px', height: '100px', objectFit: 'cover' }}
                         />
                       </div>
                     )}
-                  </div>
-                  <div className="mb-3">
-                    <label htmlFor="bio" className="form-label">Bio</label>
-                    <textarea
-                      className="form-control"
-                      id="bio"
+                  </Form.Group>
+                  <Form.Group className="mb-4">
+                    <Form.Label>Bio</Form.Label>
+                    <Form.Control
+                      as="textarea"
                       name="bio"
                       rows="4"
                       value={formData.bio}
                       onChange={handleInputChange}
-                    ></textarea>
-                  </div>
+                      placeholder="Tell us about yourself"
+                    />
+                  </Form.Group>
                   <div className="d-flex gap-2">
-                    <button type="submit" className="btn btn-success" disabled={loading}>
-                      {loading ? 'Saving...' : 'Save Changes'}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-secondary"
+                    <Button type="submit" variant="success" disabled={loading}>
+                      {loading ? (
+                        <>
+                          <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                          />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-check-circle me-2"></i> Save Changes
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
                       onClick={() => setEditMode(false)}
                       disabled={loading}
                     >
                       Cancel
-                    </button>
+                    </Button>
                   </div>
-                </form>
-              </div>
-            </div>
+                </Form>
+              </Card.Body>
+            </Card>
           )}
         </div>
       )}
       
       {activeTab === 'posts' && (
         <div className="posts-tab">
-          <h3>My Posts</h3>
+          <div className="d-flex justify-content-between mb-4">
+            <h3>My Posts</h3>
+            <Button variant="primary" href="/create-post">
+              <i className="bi bi-plus-circle me-2"></i> Create New Post
+            </Button>
+          </div>
+          
           {userPosts.length === 0 ? (
-            <p>You haven't created any posts yet.</p>
+            <Card className="border-0 shadow-sm text-center p-5">
+              <Card.Body>
+                <i className="bi bi-journal-text display-4 text-muted mb-3"></i>
+                <h4>No posts yet</h4>
+                <p className="text-muted">You haven't created any posts yet.</p>
+                <Button variant="primary" href="/create-post">
+                  Create Your First Post
+                </Button>
+              </Card.Body>
+            </Card>
           ) : (
-            <div className="row">
+            <Row xs={1} md={2} className="g-4">
               {userPosts.map(post => (
-                <div className="col-md-6 mb-4" key={post.id}>
-                  <div className="card h-100">
-                    <div className="card-body">
-                      <h5 className="card-title">{post.title}</h5>
-                      <p className="card-text text-muted">
-                        Posted on {new Date(post.timestamp).toLocaleDateString()}
-                      </p>
-                      <p className="card-text">
+                <Col key={post.id}>
+                  <Card className="h-100 border-0 shadow-sm hover-card">
+                    <Card.Body>
+                      <div className="d-flex justify-content-between mb-2">
+                        <div>
+                          {post.tags && post.tags.map(tag => (
+                            <Badge bg="secondary" key={tag} className="me-1">{tag}</Badge>
+                          ))}
+                        </div>
+                        <small className="text-muted">
+                          {new Date(post.timestamp).toLocaleDateString()}
+                        </small>
+                      </div>
+                      <Card.Title className="mb-3">{post.title}</Card.Title>
+                      <Card.Text className="text-muted">
                         {post.content.length > 100
                           ? `${post.content.substring(0, 100)}...`
                           : post.content}
-                      </p>
-                      <div>
-                        {post.tags && post.tags.map(tag => (
-                          <span key={tag} className="badge bg-secondary me-1">{tag}</span>
-                        ))}
+                      </Card.Text>
+                    </Card.Body>
+                    <Card.Footer className="bg-white border-top-0">
+                      <div className="d-flex justify-content-between align-items-center">
+                        <div>
+                          <Badge bg="light" text="dark" className="me-2">
+                            <i className="bi bi-chat me-1"></i>
+                            {post.comment_count || 0}
+                          </Badge>
+                          <Badge bg="light" text="dark">
+                            <i className="bi bi-eye me-1"></i>
+                            {post.view_count || 0}
+                          </Badge>
+                        </div>
+                        <Button
+                          variant="outline-primary" 
+                          size="sm"
+                          onClick={() => navigateToPost(post.id)}
+                        >
+                          View Post
+                        </Button>
                       </div>
-                    </div>
-                    <div className="card-footer">
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => navigateToPost(post.id)}
-                      >
-                        View Post
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                    </Card.Footer>
+                  </Card>
+                </Col>
               ))}
-            </div>
+            </Row>
           )}
         </div>
       )}
       
       {activeTab === 'security' && (
         <div className="security-tab">
-          <div className="card">
-            <div className="card-body">
-              <h3>Change Password</h3>
-              <form onSubmit={handlePasswordUpdate}>
-                <div className="mb-3">
-                  <label htmlFor="currentPassword" className="form-label">Current Password</label>
-                  <input
+          <Card className="border-0 shadow-sm">
+            <Card.Header className="bg-white py-3">
+              <h4 className="mb-0">Change Password</h4>
+            </Card.Header>
+            <Card.Body className="p-4">
+              <Form onSubmit={handlePasswordUpdate}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Current Password</Form.Label>
+                  <Form.Control
                     type="password"
-                    className="form-control"
-                    id="currentPassword"
                     name="currentPassword"
                     value={passwordData.currentPassword}
                     onChange={handlePasswordChange}
                     required
                   />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="newPassword" className="form-label">New Password</label>
-                  <input
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>New Password</Form.Label>
+                  <Form.Control
                     type="password"
-                    className="form-control"
-                    id="newPassword"
                     name="newPassword"
                     value={passwordData.newPassword}
                     onChange={handlePasswordChange}
                     required
                     minLength="8"
                   />
-                  <small className="text-muted">Password must be at least 8 characters long.</small>
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="confirmPassword" className="form-label">Confirm New Password</label>
-                  <input
+                  <Form.Text className="text-muted">
+                    Password must be at least 8 characters long.
+                  </Form.Text>
+                </Form.Group>
+                <Form.Group className="mb-4">
+                  <Form.Label>Confirm New Password</Form.Label>
+                  <Form.Control
                     type="password"
-                    className="form-control"
-                    id="confirmPassword"
                     name="confirmPassword"
                     value={passwordData.confirmPassword}
                     onChange={handlePasswordChange}
                     required
                   />
-                </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
-                  {loading ? 'Changing Password...' : 'Change Password'}
-                </button>
-              </form>
-            </div>
-          </div>
+                </Form.Group>
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  className="d-flex align-items-center"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        className="me-2"
+                      />
+                      Changing Password...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-shield-lock-fill me-2"></i> Change Password
+                    </>
+                  )}
+                </Button>
+              </Form>
+            </Card.Body>
+          </Card>
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

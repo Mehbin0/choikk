@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Navbar as BootstrapNavbar, Nav, Container, NavDropdown, Button } from 'react-bootstrap';
 import { logout } from '../services/auth';
 import { getCategories } from '../services/posts';
 import '../custom.css';
 
 const Navbar = ({ user, onLogout }) => {
   const [categories, setCategories] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,98 +37,89 @@ const Navbar = ({ user, onLogout }) => {
     }
   };
 
-  const toggleDropdown = () => {
-    setDropdownOpen(!dropdownOpen);
-  };
-
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4">
-      <div className="container">
-        <Link className="navbar-brand" to="/">
+    <BootstrapNavbar bg="white" expand="lg" className="shadow-sm py-3 mb-4">
+      <Container>
+        <BootstrapNavbar.Brand as={Link} to="/" className="fw-bold">
           <h2 className="m-0">Choikk Forum</h2>
-        </Link>
+        </BootstrapNavbar.Brand>
         
-        {user && (
-          <button 
-            className="navbar-toggler" 
-            type="button" 
-            data-bs-toggle="collapse" 
-            data-bs-target="#navbarContent"
-            aria-controls="navbarContent" 
-            aria-expanded="false" 
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-        )}
+        <BootstrapNavbar.Toggle aria-controls="basic-navbar-nav" />
         
-        <div className="collapse navbar-collapse" id="navbarContent">
+        <BootstrapNavbar.Collapse id="basic-navbar-nav">
           {user && (
-            <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-              <li className="nav-item">
-                <Link className="nav-link" to="/">Home</Link>
-              </li>
-              <li className="nav-item dropdown">
-                <button
-                  className="nav-link dropdown-toggle"
-                  onClick={toggleDropdown}
-                  aria-expanded={dropdownOpen}
-                >
-                  Categories
-                </button>
-                {dropdownOpen && (
-                  <ul className="dropdown-menu show">
-                    {categories.map(category => (
-                      <li key={category.id}>
-                        <Link 
-                          className="dropdown-item" 
-                          to={`/categories/${category.id}/posts`}
-                          onClick={() => setDropdownOpen(false)}
-                        >
-                          {category.name}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-              <li className="nav-item">
-                <Link className="nav-link" to="/new-post">Create Post</Link>
-              </li>
-            </ul>
+            <Nav className="me-auto">
+              <Nav.Link as={Link} to="/">Home</Nav.Link>
+              
+              <NavDropdown title="Categories" id="categories-dropdown">
+                {categories.map(category => (
+                  <NavDropdown.Item 
+                    key={category.id} 
+                    as={Link} 
+                    to={`/category/${category.id}`}
+                  >
+                    {category.name}
+                  </NavDropdown.Item>
+                ))}
+              </NavDropdown>
+              
+              <Nav.Link as={Link} to="/create-post">
+                <i className="bi bi-plus-circle me-1"></i> Create Post
+              </Nav.Link>
+            </Nav>
           )}
           
-          <div className="d-flex align-items-center">
+          <Nav>
             {user ? (
-              <div className="d-flex align-items-center gap-3">
-                <div className="dropdown">
-                  <button 
-                    className="btn btn-outline-primary dropdown-toggle"
-                    type="button"
-                    id="userMenuDropdown"
-                    data-bs-toggle="dropdown"
-                    aria-expanded="false"
-                  >
-                    {user.username}
-                  </button>
-                  <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuDropdown">
-                    <li><Link className="dropdown-item" to="/profile">My Profile</Link></li>
-                    <li><Link className="dropdown-item" to="/my-posts">My Posts</Link></li>
-                    <li><hr className="dropdown-divider" /></li>
-                    <li><button className="dropdown-item" onClick={handleLogout}>Logout</button></li>
-                  </ul>
-                </div>
+              <div className="d-flex align-items-center">
+                <NavDropdown 
+                  title={
+                    <span>
+                      <i className="bi bi-person-circle me-1"></i>
+                      {user.username}
+                    </span>
+                  } 
+                  id="user-dropdown"
+                  align="end"
+                >
+                  <NavDropdown.Item as={Link} to="/profile">
+                    <i className="bi bi-person me-2"></i>My Profile
+                  </NavDropdown.Item>
+                  <NavDropdown.Item as={Link} to="/my-posts">
+                    <i className="bi bi-file-text me-2"></i>My Posts
+                  </NavDropdown.Item>
+                  <NavDropdown.Divider />
+                  <NavDropdown.Item onClick={handleLogout}>
+                    <i className="bi bi-box-arrow-right me-2"></i>Logout
+                  </NavDropdown.Item>
+                </NavDropdown>
+                
+                {/* Standalone Logout Button for Better Visibility */}
+                <Button 
+                  variant="outline-danger" 
+                  size="sm"
+                  className="ms-2"
+                  onClick={handleLogout}
+                >
+                  <i className="bi bi-box-arrow-right me-1"></i>
+                  Logout
+                </Button>
               </div>
             ) : (
               <div className="d-flex gap-2">
-                <Link to="/login" className="btn btn-outline-primary">Login</Link>
-                <Link to="/register" className="btn btn-primary">Register</Link>
+                <Button as={Link} to="/login" variant="outline-primary">
+                  Login
+                </Button>
+                <Button as={Link} to="/register" variant="primary">
+                  Register
+                </Button>
               </div>
             )}
-          </div>
-        </div>
-      </div>
-    </nav>  );
+          </Nav>
+        </BootstrapNavbar.Collapse>
+      </Container>
+    </BootstrapNavbar>
+  );
 };
 
 export default Navbar;
