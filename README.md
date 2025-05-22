@@ -4,9 +4,12 @@ A secure members-only discussion forum built with Flask and React.
 
 ## Features
 
-- **Secure Authentication:** Register and login to access the forum
+- **Secure Authentication:** Register and login to access the forum with CSRF protection
+- **User Profiles:** Personal profiles with bio, avatar, and stats
 - **Private Content:** All content is restricted to members only
 - **Create Posts:** Members can create posts with titles, content, and tags
+- **Categories:** Organize posts by categories
+- **Comments & Likes:** Engage with posts through comments and likes
 - **View Posts:** Browse all posts created by members
 - **Responsive Design:** Works on desktop and mobile devices
 
@@ -15,10 +18,105 @@ A secure members-only discussion forum built with Flask and React.
 ### Backend
 - Flask (Python)
 - SQLite Database
-- User authentication with session management
-- RESTful API
+- User authentication with secure session management
+- RESTful API with CSRF protection
+- Rate limiting middleware
 
 ### Frontend
+- React (JavaScript)
+- React Router for navigation
+- Modern responsive UI with CSS
+- Secure API communication
+
+## Installation & Setup
+
+### Prerequisites
+- Node.js 16+ and npm
+- Python 3.9+
+- Git
+
+### Local Development Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/choikk.git
+   cd choikk
+   ```
+
+2. **Backend Setup**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   ```
+
+4. **Environment Configuration**
+   - Backend: Copy `.env.development` to `.env` and adjust settings
+   - Frontend: Copy `.env.development` to `.env` and adjust settings
+
+5. **Run Development Servers**
+   - Backend:
+     ```bash
+     cd backend
+     flask run
+     ```
+   - Frontend:
+     ```bash
+     cd frontend
+     npm start
+     ```
+
+6. **Access the application**
+   Open your browser and navigate to http://localhost:3000
+
+## Docker Deployment
+
+The application includes Docker support for easy deployment:
+
+1. **Build and run with Docker Compose**
+   ```bash
+   docker-compose up --build
+   ```
+
+2. **Access the application**
+   Open your browser and navigate to http://localhost:3000
+
+## Testing
+
+### Backend Tests
+```bash
+cd backend
+python -m pytest
+```
+
+### Frontend Tests
+```bash
+cd frontend
+npm test
+```
+
+## Security Features
+
+- CSRF Protection
+- Rate Limiting
+- Secure Password Hashing (PBKDF2)
+- Secure Session Configuration
+- Input Validation
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 - React
 - Modern UI components
 - Secure authentication workflow

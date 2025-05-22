@@ -1,17 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { checkAuth } from './services/auth';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { checkAuth, logout } from './services/auth';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import Register from './components/Register';
 import CreatePost from './components/CreatePost';
 import WelcomeScreen from './components/WelcomeScreen';
+import PostDetail from './components/PostDetail';
+import UserProfile from './components/UserProfile';
 import { getAllPosts } from './services/posts';
 import './App.css';
+import './custom.css';
 
 function App() {
-  const [posts, setPosts] = useState([]);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
 
@@ -32,9 +37,12 @@ function App() {
         } else {
           // If server says not authenticated, clear user state
           setUser(null);
+          localStorage.removeItem('user');
         }
       } catch (error) {
         console.error('Auth verification error:', error);
+        setUser(null);
+        localStorage.removeItem('user');
       } finally {
         setLoading(false);
       }
@@ -48,163 +56,108 @@ function App() {
     const fetchPosts = async () => {
       if (!user) {
         console.log("No user, skipping posts fetch");
+        setPosts([]);
         return; // Don't fetch posts if not logged in
       }
       
-      console.log("User authenticated, fetching posts:", user);
+      console.log("User authenticated, fetching posts");
       try {
         const data = await getAllPosts();
         console.log("Posts fetched successfully:", data);
-        setPosts(data);
+        setPosts(data.posts || []);
       } catch (error) {
         console.error('Error fetching posts:', error);
-        // If unauthorized, ensure we clear the posts
-        if (error.message && error.message.includes('must be logged in')) {
-          setPosts([]);
-        }
+        setPosts([]);
       }
     };
 
     fetchPosts();
-  }, [user]); // Refetch when user changes (login/logout)
+  }, [user]);
+
+  // Fetch categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:5000/categories', {
+          credentials: 'include'
+        });
+        const data = await response.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleLoginSuccess = (userData) => {
     console.log("Login success, setting user data:", userData);
     setUser(userData);
-    setShowLogin(false);
+    localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const handleRegisterSuccess = () => {
-    setShowRegister(false);
-    setShowLogin(true); // Show login form after successful registration
-  };
-
-  const handleLogout = () => {
-    // Clear user state
-    setUser(null);
-    // Clear localStorage
-    localStorage.removeItem('user');
-    // Reset UI state
-    setShowLogin(false);
-    setShowRegister(false);
-  };
-  
-  const handlePostCreated = async () => {
-    // Fetch all posts again after a new post is created
+  const handleLogoutClick = async () => {
     try {
-      const data = await getAllPosts();
-      setPosts(data);
+      await logout();
+      // Clear user state
+      setUser(null);
+      // Clear localStorage
+      localStorage.removeItem('user');
+      localStorage.removeItem('csrfToken');
     } catch (error) {
-      console.error('Error refreshing posts:', error);
+      console.error('Logout error:', error);
     }
   };
-  
+
   if (loading) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div>
-      <Navbar 
-        user={user} 
-        onLogout={handleLogout} 
-      />
-      
-      <div style={{ padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h1>Choikk Forum</h1>
-          <div>
-            {!user && (
-              <div>
-                <button 
-                  onClick={() => { setShowLogin(true); setShowRegister(false); }}
-                  style={{ marginRight: '0.5rem' }}
-                >
-                  Login
-                </button>
-                <button 
-                  onClick={() => { setShowRegister(true); setShowLogin(false); }}
-                >
-                  Register
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+    <Router>
+      <div className="App">
+        <Navbar user={user} onLogout={handleLogoutClick} categories={categories} />
         
-        {!user ? (
-          // Show authentication forms if not logged in
-          <div>
-            {showLogin ? (
-              <div style={{ marginBottom: '2rem' }}>
-                <Login onLoginSuccess={handleLoginSuccess} />
-                <p>
-                  Don't have an account? 
-                  <button 
-                    onClick={() => { setShowRegister(true); setShowLogin(false); }}
-                    style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
-                  >
-                    Register here
-                  </button>
-                </p>
-              </div>
-            ) : showRegister ? (
-              <div style={{ marginBottom: '2rem' }}>
-                <Register onRegisterSuccess={handleRegisterSuccess} />
-                <p>
-                  Already have an account? 
-                  <button 
-                    onClick={() => { setShowLogin(true); setShowRegister(false); }}
-                    style={{ marginLeft: '0.5rem', background: 'none', border: 'none', color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}
-                  >
-                    Login here
-                  </button>
-                </p>
-              </div>
-            ) : (
-              <WelcomeScreen 
-                onLoginClick={() => { setShowLogin(true); setShowRegister(false); }} 
-                onRegisterClick={() => { setShowRegister(true); setShowLogin(false); }} 
-              />
-            )}
-          </div>
-        ) : (
-          // Show content only if logged in
-          <div>
-            <div style={{ marginBottom: '2rem', border: '1px solid #ccc', padding: '1rem', borderRadius: '4px' }}>
-              <CreatePost onPostCreated={handlePostCreated} />
-            </div>
-               <div>
-            <h2>Recent Posts</h2>
-            {posts ? (
-              posts.length === 0 ? (
-                <p>No posts found. The database has posts but they were not returned properly.</p>
-              ) : (
-                posts.map(post => (
-                  <div key={post.id} className="post-card">
-                    <h2 className="post-title">{post.title}</h2>
-                    <p className="post-content">{post.content}</p>
-                    <div className="post-meta">
-                      <span>By <strong>{post.author}</strong> at {post.timestamp}</span>
-                      {post.tags && post.tags.length > 0 && (
-                        <div className="post-tags">
-                          {post.tags.map((tag, index) => (
-                            <span key={index} className="tag">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )
-            ) : (
-              <p>Loading posts...</p>
-            )}
-            </div>
-          </div>
-        )}
+        <div className="container mt-4">
+          <Routes>
+            <Route path="/" element={
+              user ? <WelcomeScreen user={user} posts={posts} /> : <Navigate to="/login" />
+            } />
+            
+            <Route 
+              path="/login" 
+              element={user ? <Navigate to="/" /> : <Login onLoginSuccess={handleLoginSuccess} />} 
+            />
+            
+            <Route 
+              path="/register" 
+              element={user ? <Navigate to="/" /> : <Register />} 
+            />
+            
+            <Route 
+              path="/create-post" 
+              element={user ? <CreatePost categories={categories} /> : <Navigate to="/login" />} 
+            />
+            
+            <Route 
+              path="/post/:id" 
+              element={user ? <PostDetail /> : <Navigate to="/login" />} 
+            />
+            
+            <Route 
+              path="/profile" 
+              element={user ? <UserProfile /> : <Navigate to="/login" />} 
+            />
+            
+            <Route 
+              path="/category/:id" 
+              element={user ? <WelcomeScreen user={user} isCategoryView={true} /> : <Navigate to="/login" />} 
+            />
+          </Routes>
+        </div>
       </div>
-    </div>
+    </Router>
   );
 }
 

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { register } from "../services/auth";
+import { useNavigate } from "react-router-dom";
 
 const Register = ({ onRegisterSuccess }) => {
   const [username, setUsername] = useState("");
@@ -7,6 +8,7 @@ const Register = ({ onRegisterSuccess }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,6 +25,14 @@ const Register = ({ onRegisterSuccess }) => {
     try {
       await register(username, password);
       setIsLoading(false);
+      
+      // Show success message to the user
+      alert("Registration successful! Please login with your new account.");
+      
+      // Redirect to login page
+      navigate("/login");
+      
+      // Also call the success callback if provided
       if (onRegisterSuccess) {
         onRegisterSuccess();
       }

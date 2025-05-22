@@ -1,3 +1,4 @@
+// filepath: c:\Users\User\choikk\frontend\src\services\auth.js
 // Authentication service
 
 // Use environment variable or default to localhost if not defined
@@ -47,7 +48,7 @@ export const login = async (username, password) => {
     if (!response.ok) {
       throw new Error(data.error || 'Login failed');
     }
-    
+
     // Store user info in localStorage
     localStorage.setItem('user', JSON.stringify(data.user));
     
@@ -63,15 +64,14 @@ export const login = async (username, password) => {
   }
 };
 
-export const register = async (username, password) => {
+export const register = async (username, password, email) => {
   try {
-    // Only send username and password to match the database schema
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, email }),
       credentials: 'include'
     });
 
