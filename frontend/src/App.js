@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { checkAuth, logout } from './services/auth';
 import Navbar from './components/Navbar';
@@ -160,5 +161,3 @@ function App() {
     </Router>
   );
 }
-
-export default App;

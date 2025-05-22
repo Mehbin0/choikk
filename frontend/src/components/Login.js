@@ -1,95 +1,93 @@
-import React, { useState } from 'react';
+// filepath: c:\Users\User\choikk\frontend\src\components\Login.js
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Container, Row, Col, Form, Button, Card, Alert } from 'react-bootstrap';
-import { login } from '../services/auth';
+import authService from '../services/auth';
 
-const Login = ({ onLoginSuccess }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+const Login = () => {
+    const [username, setUsername] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
+    useEffect(() => {
+        // Check if we just logged out - if so, don't check auth status
+        const justLoggedOut = sessionStorage.getItem('justLoggedOut') === 'true';
+        
+        if (justLoggedOut) {
+            // Clear the flag
+            sessionStorage.removeItem('justLoggedOut');
+            console.log('Just logged out, staying on login page');
+            return;
+        }        // Check if user is already authenticated
+        const checkAuthStatus = async () => {
+            try {
+                const response = await authService.checkAuthStatus();
+                if (response && response.isAuthenticated) {
+                    // Just stay on login page since we have no other pages
+                    console.log('User is authenticated');
+                }
+            } catch (error) {
+                // User is not authenticated, continue showing login page
+                console.log('User not authenticated, showing login page');
+            }
+        };
 
-    try {
-      const data = await login(username, password);
-      setIsLoading(false);
-      if (onLoginSuccess) {
-        onLoginSuccess(data.user);
-      }
-      navigate('/');
-    } catch (err) {
-      setIsLoading(false);
-      setError(err.message || 'Login failed. Please try again.');
-    }
-  };
-  
-  return (
-    <Container className="py-5">
-      <Row className="justify-content-center">
-        <Col md={6}>
-          <Card className="border-0 shadow-sm">
-            <Card.Body className="p-4">
-              <div className="text-center mb-4">
-                <h2 className="fw-bold text-primary">Welcome Back</h2>
-                <p className="text-muted">Sign in to continue to Choikk Forum</p>
-              </div>
-              
-              {error && <Alert variant="danger">{error}</Alert>}
-              
-              <Form onSubmit={handleSubmit}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Username</Form.Label>
-                  <Form.Control
-                    type="text"
-                    placeholder="Enter your username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    required
-                  />
-                </Form.Group>
+        checkAuthStatus();
+        // Adding navigate as a dependency to avoid the exhaustive-deps warning
+    }, [navigate]);    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
 
-                <Form.Group className="mb-4">
-                  <Form.Label>Password</Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Enter your password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </Form.Group>
+        try {
+            const response = await authService.login(username, password);
+            if (response && response.message) {
+                // Show success message instead of navigating
+                setError('');
+                alert('Successfully logged in!');
+            }
+        } catch (err) {
+            setError(err.response?.data?.error || 'Login failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-                <div className="d-grid">
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
-                    size="lg" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Signing in...' : 'Sign In'}
-                  </Button>
+    return (
+        <div className="auth-container">
+            <h2>Login to Choikk</h2>
+            {error && <div className="error-message">{error}</div>}
+            <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input
+                        type="text"
+                        id="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        required
+                    />
                 </div>
-              </Form>
-              
-              <div className="text-center mt-4">
-                <p>
-                  Don't have an account?{' '}
-                  <Link to="/register" className="text-primary">
-                    Register
-                  </Link>
-                </p>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
-  );
+                <div className="form-group">
+                    <label htmlFor="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                    />
+                </div>
+                <button type="submit" disabled={loading}>
+                    {loading ? 'Logging in...' : 'Login'}
+                </button>
+            </form>
+            <p>
+                Don't have an account? <Link to="/register">Register here</Link>
+            </p>
+        </div>
+    );
 };
 
 export default Login;

@@ -1,225 +1,131 @@
-// Authentication service
+import axios from 'axios';
 
-// Use environment variable or default to localhost if not defined
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// Create axios instance with default config
+const api = axios.create({
+    baseURL: 'http://localhost:5000',
+    withCredentials: true, // Important for cookies
+    headers: {
+        'Content-Type': 'application/json'
+    }
+});
 
-// Store CSRF token
-let csrfToken = null;
+const authService = {    register: async (username, password) => {
+        try {
+            console.log('Attempting to register user:', username);
+            const response = await api.post('/register', { 
+                username, 
+                password
+            });
+            console.log('Registration response:', response.status, response.statusText);
+            return response.data;
+        } catch (error) {
+            console.error('Registration error details:', error.message);
+            if (error.response) {
+                console.error('Server response:', error.response.status, error.response.data);
+            }
+            throw error;
+        }
+    },
+    
+    login: async (username, password) => {
+        try {
+            // Clear any previous logout flag
+            sessionStorage.removeItem('forceLogout');
+            
+            const response = await api.post('/login', { username, password });
+            // Store user info for persistence
+            if (response.data.user) {
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+            }
+            return response.data;
+        } catch (error) {
+            throw error;
+        }
+    },
 
-export const setCsrfToken = (token) => {
-  csrfToken = token;
-  localStorage.setItem('csrfToken', token);
+    logout: async () => {
+        // Mark as logged out immediately - no matter what happens with API
+        sessionStorage.setItem('forceLogout', 'true');
+        
+        // Clear local storage
+        localStorage.removeItem('user');
+        
+        try {
+            // Make sure we're creating a fresh request with no cached credentials
+            const response = await fetch('/logout', {
+                method: 'POST',
+                credentials: 'include',
+                cache: 'no-store',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                }
+            });
+            
+            // Don't clear sessionStorage here as it would remove our forceLogout flag
+            // Only clear other items selectively if needed
+            
+            return await response.json();
+        } catch (error) {
+            console.error("Logout API call failed:", error);
+            return { message: "Logged out locally" };
+        }
+    },    checkAuthStatus: async () => {
+        // If we just logged out or are in the process of logging out, return not authenticated without checking
+        if (sessionStorage.getItem('forceLogout') === 'true') {
+            console.log('Auth Service: forceLogout flag detected');
+            return { isAuthenticated: false };
+        }
+        
+        try {
+            console.log('Checking auth status...');
+            // Add cache busting to prevent cached responses
+            const response = await api.get(`/auth/status?_=${new Date().getTime()}`);
+            
+            console.log('Auth status response:', response.data);
+            // Update local storage if authenticated
+            if (response.data.isAuthenticated && response.data.user) {
+                localStorage.setItem('user', JSON.stringify(response.data.user));
+                console.log('User authenticated:', response.data.user.username);
+            } else if (!response.data.isAuthenticated) {
+                // If not authenticated, clear any local auth data
+                console.log('User not authenticated, clearing local storage');
+                localStorage.removeItem('user');
+            }
+            
+            return response.data;
+        } catch (error) {
+            // If auth check fails, clear any local auth data
+            localStorage.removeItem('user');
+            throw error;
+        }
+    },
+
+    // Helper to get current user from localStorage
+    getCurrentUser: () => {
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+            try {
+                return JSON.parse(userStr);
+            } catch {
+                localStorage.removeItem('user');
+                return null;
+            }
+        }
+        return null;
+    }
 };
 
-export const getCsrfToken = () => {
-  if (!csrfToken) {
-    csrfToken = localStorage.getItem('csrfToken');
-  }
-  return csrfToken;
-};
-
-// Add CSRF token to headers if available
-const getAuthHeaders = () => {
-  const headers = {
-    'Content-Type': 'application/json',
-  };
-  
-  const token = getCsrfToken();
-  if (token) {
-    headers['X-CSRF-Token'] = token;
-  }
-  
-  return headers;
-};
-
-export const login = async (username, password) => {
-  try {
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
+// Add interceptor to handle 401 responses globally
+api.interceptors.response.use(
+    response => response,
+    error => {
+        if (error.response && error.response.status === 401) {
+            // Clear local data on auth failures
+            localStorage.removeItem('user');
+        }
+        return Promise.reject(error);
     }
-    
-    // Store user info in localStorage
-    localStorage.setItem('user', JSON.stringify(data.user));
-    
-    // Store CSRF token if provided
-    if (data.csrf_token) {
-      setCsrfToken(data.csrf_token);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Login error:', error);
-    throw error;
-  }
-};
+);
 
-export const register = async (username, password) => {
-  try {
-    // Only send username and password to match the database schema
-    const response = await fetch(`${API_URL}/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Registration failed');
-    }
-    
-    // Store user info in localStorage if auto-logged in
-    if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
-    }
-    
-    // Store CSRF token if provided
-    if (data.csrf_token) {
-      setCsrfToken(data.csrf_token);
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Registration error:', error);
-    throw error;
-  }
-};
-
-export const logout = async () => {
-  try {
-    const response = await fetch(`${API_URL}/logout`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-
-    // Clear user data and CSRF token from localStorage
-    localStorage.removeItem('user');
-    localStorage.removeItem('csrfToken');
-    csrfToken = null;
-    
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Logout failed');
-    }
-    return data;
-  } catch (error) {
-    console.error('Logout error:', error);
-    throw error;
-  }
-};
-
-export const checkAuth = async () => {
-  try {
-    const response = await fetch(`${API_URL}/check_auth`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    
-    if (data.authenticated) {
-      // Update user info in localStorage
-      localStorage.setItem('user', JSON.stringify(data.user));
-      
-      return { authenticated: true, user: data.user };
-    } else {
-      // Clear user data from localStorage
-      localStorage.removeItem('user');
-      return { authenticated: false };
-    }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    localStorage.removeItem('user');
-    return { authenticated: false, error };
-  }
-};
-
-export const getCurrentUser = () => {
-  const userStr = localStorage.getItem('user');
-  if (userStr) {
-    try {
-      return JSON.parse(userStr);
-    } catch (error) {
-      console.error('Error parsing user data:', error);
-      return null;
-    }
-  }
-  return null;
-};
-
-// User profile functions
-export const getUserProfile = async () => {
-  try {
-    const response = await fetch(`${API_URL}/user/profile`, {
-      method: 'GET',
-      headers: getAuthHeaders(),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to get user profile');
-    }
-    
-    return data.user;
-  } catch (error) {
-    console.error('Get profile error:', error);
-    throw error;
-  }
-};
-
-export const updateUserProfile = async (profileData) => {
-  try {
-    const response = await fetch(`${API_URL}/user/profile`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(profileData),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to update profile');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Update profile error:', error);
-    throw error;
-  }
-};
-
-export const changePassword = async (currentPassword, newPassword) => {
-  try {
-    const response = await fetch(`${API_URL}/user/change-password`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to change password');
-    }
-    
-    return data;
-  } catch (error) {
-    console.error('Change password error:', error);
-    throw error;
-  }
-};
+export default authService;
